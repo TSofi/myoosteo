@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MyoOsteo</title>
+  <link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>MyoOsteo</h1>
+  </header>
+
+  <main>
+    <section id="start-screen" class="screen">
+      <form id="start-form" class="start-form">
+        <fieldset>
+          <legend>Region</legend>
+          <div id="region-options" class="options"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Layer</legend>
+          <div id="layer-options" class="options"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Mode</legend>
+          <div class="options">
+            <label class="option">
+              <input type="radio" name="mode" value="hint" checked />
+              <span>Hint<small>Type over the pale name</small></span>
+            </label>
+            <label class="option">
+              <input type="radio" name="mode" value="recall" />
+              <span>Recall<small>Type the name from memory</small></span>
+            </label>
+          </div>
+        </fieldset>
+
+        <button type="submit" class="primary">Start</button>
+        <p id="start-error" class="error" hidden></p>
+      </form>
+    </section>
+
+    <section id="quiz-screen" class="screen" hidden>
+      <div class="quiz-bar">
+        <button type="button" id="back-button" class="link">← Back</button>
+        <span id="quiz-title"></span>
+      </div>
+
+      <div id="stage" class="stage">
+        <div id="svg-host" class="svg-host"></div>
+        <div id="highlight" class="highlight" aria-hidden="true"></div>
+      </div>
+
+      <div class="name-area">
+        <p id="hint" class="hint" aria-hidden="true"></p>
+        <p id="hint-latin" class="hint-latin"></p>
+      </div>
+
+      <form id="answer-form" class="answer-form" autocomplete="off">
+        <input id="answer-input" type="text" spellcheck="false" autocapitalize="off" aria-label="Name of the highlighted structure" />
+        <button type="submit" id="answer-button">Check</button>
+      </form>
+      <p id="feedback" class="feedback" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    Bone illustration:
+    <a href="https://commons.wikimedia.org/wiki/File:202110_Anterior_view_of_bones_of_right_hand.svg">DBCLS</a>,
+    <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> (modified).
+  </footer>
+
+  <script type="module" src="src/ui.js"></script>
+</body>
+</html>

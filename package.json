@@ -1,0 +1,20 @@
+{
+  "name": "myoosteo",
+  "version": "0.1.0",
+  "description": "Anatomy practice game for bones and muscles",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "node scripts/serve.js",
+    "build": "node scripts/build.js",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "vitest": "^3.2.7"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

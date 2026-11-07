@@ -1,0 +1,12 @@
+{
+  "regions": [
+    {
+      "id": "hand",
+      "name": "Hand",
+      "layers": [
+        { "id": "bones", "name": "Bones" },
+        { "id": "muscles", "name": "Muscles" }
+      ]
+    }
+  ]
+}

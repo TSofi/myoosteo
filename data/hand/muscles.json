@@ -1,0 +1,19 @@
+{
+  "region": "hand",
+  "layer": "muscles",
+  "svg": "muscles.svg",
+  "start": "abductor-pollicis-brevis",
+  "items": [
+    { "id": "abductor-pollicis-brevis", "name": "Abductor pollicis brevis", "latin": "Musculus abductor pollicis brevis", "svgId": "apb", "next": "flexor-pollicis-brevis" },
+    { "id": "flexor-pollicis-brevis", "name": "Flexor pollicis brevis", "latin": "Musculus flexor pollicis brevis", "svgId": "fpb", "next": "adductor-pollicis" },
+    { "id": "adductor-pollicis", "name": "Adductor pollicis", "latin": "Musculus adductor pollicis", "svgId": "adp", "next": "lumbrical-1" },
+    { "id": "lumbrical-1", "name": "First lumbrical", "latin": "Musculus lumbricalis I", "svgId": "l1", "next": "lumbrical-2" },
+    { "id": "lumbrical-2", "name": "Second lumbrical", "latin": "Musculus lumbricalis II", "svgId": "l2", "next": "lumbrical-3" },
+    { "id": "lumbrical-3", "name": "Third lumbrical", "latin": "Musculus lumbricalis III", "svgId": "l3", "next": "lumbrical-4" },
+    { "id": "lumbrical-4", "name": "Fourth lumbrical", "latin": "Musculus lumbricalis IV", "svgId": "l4", "next": "flexor-digiti-minimi-brevis" },
+    { "id": "flexor-digiti-minimi-brevis", "name": "Flexor digiti minimi brevis", "latin": "Musculus flexor digiti minimi brevis", "svgId": "fdmb", "next": "abductor-digiti-minimi" },
+    { "id": "abductor-digiti-minimi", "name": "Abductor digiti minimi", "latin": "Musculus abductor digiti minimi", "svgId": "adm", "next": "opponens-digiti-minimi" },
+    { "id": "opponens-digiti-minimi", "name": "Opponens digiti minimi", "latin": "Musculus opponens digiti minimi", "svgId": "odm", "next": "opponens-pollicis" },
+    { "id": "opponens-pollicis", "name": "Opponens pollicis", "latin": "Musculus opponens pollicis", "svgId": "op", "next": "abductor-pollicis-brevis" }
+  ]
+}
