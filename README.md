@@ -13,8 +13,23 @@ layers (bones, muscles) and two typing modes.
   case and extra spaces do not matter) and press Enter. If it is wrong, the
   correct name is shown; press Enter again to continue.
 
-The highlight always moves to an anatomical neighbour of the current
-structure. That order is stored in the data, not in the code.
+On the settings screen you also choose the **order**: anatomical neighbours
+(stored in the data, not in the code) or random. Every structure is asked
+once per session; the last choice is remembered in the browser.
+
+**Mistakes** are counted per structure and saved in the browser
+(`localStorage`). A structure counts as a mistake when the recall answer is
+wrong or, in hint mode, when any wrong letter was typed. "Repeat my mistakes"
+asks only those structures; answering one right on the first try there
+removes it from the list.
+
+At the end of a session a **summary** shows how many structures were right on
+the first try and lists the ones with mistakes, with **Again** and **Repeat
+mistakes** buttons.
+
+**Keyboard:** Esc returns to the settings menu; Tab moves through the
+controls in screen order. A screen-reader live region announces each new
+structure (in recall mode without its name, since that is the answer).
 
 ## Run
 

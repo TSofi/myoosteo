@@ -1,7 +1,11 @@
 // UI: renders screens and forwards user input to the quiz logic in quiz.js.
-import { MODES, createQuiz, loadLayer, loadRegions } from './quiz.js';
+import {
+  MODES, ORDERS, createQuiz, loadLayer, loadRegions, mistakeIds, updateMistakes,
+} from './quiz.js';
 
 const NEXT_DELAY_MS = 600;
+const SETTINGS_KEY = 'myoosteo:settings';
+const MISTAKES_KEY = 'myoosteo:mistakes';
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -10,6 +14,8 @@ const els = {
   startError: $('start-error'),
   regionOptions: $('region-options'),
   layerOptions: $('layer-options'),
+  setMistakes: $('set-mistakes'),
+  mistakesCount: $('mistakes-count'),
   quizScreen: $('quiz-screen'),
   quizTitle: $('quiz-title'),
   backButton: $('back-button'),
@@ -22,13 +28,63 @@ const els = {
   answerInput: $('answer-input'),
   answerButton: $('answer-button'),
   feedback: $('feedback'),
+  summaryScreen: $('summary-screen'),
+  summaryTitle: $('summary-title'),
+  summaryScore: $('summary-score'),
+  summaryMistakes: $('summary-mistakes'),
+  summaryNone: $('summary-none'),
+  againButton: $('again-button'),
+  repeatButton: $('repeat-button'),
+  menuButton: $('menu-button'),
+  announcer: $('announcer'),
 };
 
 let regions = [];
 let quiz = null;
+let session = null; // { region, layer, mode, order, onlyMistakes, layerData, lastId }
 let nextTimer = null;
 
-// ---------- Start screen ----------
+// ---------- Storage (localStorage may be missing or blocked) ----------
+
+function readJson(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key)) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJson(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Not saved; the app still works for this visit.
+  }
+}
+
+const layerKey = (region, layer) => `${region}/${layer}`;
+
+function storedMistakes(region, layer) {
+  return readJson(MISTAKES_KEY, {})[layerKey(region, layer)] ?? {};
+}
+
+function saveMistakes(region, layer, counts) {
+  const all = readJson(MISTAKES_KEY, {});
+  all[layerKey(region, layer)] = counts;
+  writeJson(MISTAKES_KEY, all);
+}
+
+// ---------- Screens ----------
+
+function showScreen(screen) {
+  for (const el of [els.startScreen, els.quizScreen, els.summaryScreen]) el.hidden = el !== screen;
+}
+
+function announce(text) {
+  els.announcer.textContent = text;
+}
+
+// ---------- Settings screen ----------
 
 function radio(name, value, label, checked) {
   const wrap = document.createElement('label');
@@ -41,61 +97,107 @@ function radio(name, value, label, checked) {
   return wrap;
 }
 
-function renderLayerOptions(regionId) {
+function checkRadio(name, value) {
+  const input = els.startForm.querySelector(`input[name="${name}"][value="${CSS.escape(value ?? '')}"]`);
+  if (input) input.checked = true;
+}
+
+function selected(name) {
+  return new FormData(els.startForm).get(name);
+}
+
+function renderLayerOptions(regionId, layerId) {
   const region = regions.find((r) => r.id === regionId);
+  const current = region.layers.some((l) => l.id === layerId) ? layerId : region.layers[0].id;
   els.layerOptions.replaceChildren(
-    ...region.layers.map((layer, i) => radio('layer', layer.id, layer.name, i === 0)),
+    ...region.layers.map((layer) => radio('layer', layer.id, layer.name, layer.id === current)),
   );
+  renderMistakesOption();
+}
+
+/** Shows how many saved mistakes the chosen layer has; disables the option at 0. */
+function renderMistakesOption() {
+  const count = mistakeIds(storedMistakes(selected('region'), selected('layer'))).length;
+  els.setMistakes.disabled = count === 0;
+  if (count === 0) checkRadio('set', 'all');
+  els.mistakesCount.textContent = count === 0
+    ? 'No mistakes saved yet'
+    : `${count} structure${count === 1 ? '' : 's'} with mistakes`;
 }
 
 function renderStartScreen() {
+  const saved = readJson(SETTINGS_KEY, {});
+  const region = regions.some((r) => r.id === saved.region) ? saved.region : regions[0].id;
   els.regionOptions.replaceChildren(
-    ...regions.map((region, i) => radio('region', region.id, region.name, i === 0)),
+    ...regions.map((r) => radio('region', r.id, r.name, r.id === region)),
   );
-  renderLayerOptions(regions[0].id);
+  renderLayerOptions(region, saved.layer);
+  if (Object.values(MODES).includes(saved.mode)) checkRadio('mode', saved.mode);
+  if (Object.values(ORDERS).includes(saved.order)) checkRadio('order', saved.order);
 }
 
 els.regionOptions.addEventListener('change', (e) => renderLayerOptions(e.target.value));
+els.layerOptions.addEventListener('change', renderMistakesOption);
 
 els.startForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const form = new FormData(els.startForm);
+  const settings = {
+    region: selected('region'),
+    layer: selected('layer'),
+    mode: selected('mode'),
+    order: selected('order'),
+  };
+  writeJson(SETTINGS_KEY, settings);
   els.startError.hidden = true;
   try {
-    await startQuiz(form.get('region'), form.get('layer'), form.get('mode'));
+    await startSession({ ...settings, onlyMistakes: selected('set') === 'mistakes' });
   } catch (err) {
     els.startError.textContent = err.message;
     els.startError.hidden = false;
   }
 });
 
-// ---------- Quiz screen ----------
-
-async function startQuiz(regionId, layerId, mode) {
-  const layer = await loadLayer(regionId, layerId);
-  const svgRes = await fetch(layer.svgUrl);
-  if (!svgRes.ok) throw new Error(`Could not load ${layer.svgUrl}`);
-  els.svgHost.innerHTML = await svgRes.text();
-
-  quiz = createQuiz(layer, { mode });
-
-  const region = regions.find((r) => r.id === regionId);
-  const layerName = region.layers.find((l) => l.id === layerId).name;
-  els.quizTitle.textContent = `${region.name} · ${layerName} · ${mode === MODES.HINT ? 'Hint' : 'Recall'}`;
-  els.answerButton.hidden = mode === MODES.HINT;
-
-  els.startScreen.hidden = true;
-  els.quizScreen.hidden = false;
-  renderItem({ animate: false });
-  els.answerInput.focus();
-}
-
-function stopQuiz() {
+function showMenu() {
   clearTimeout(nextTimer);
   quiz = null;
   els.svgHost.replaceChildren();
-  els.quizScreen.hidden = true;
-  els.startScreen.hidden = false;
+  renderMistakesOption();
+  showScreen(els.startScreen);
+  els.startForm.querySelector('button[type="submit"]').focus();
+}
+
+// ---------- Quiz screen ----------
+
+async function startSession(settings) {
+  const sameLayer = session && session.region === settings.region && session.layer === settings.layer;
+  const layerData = sameLayer ? session.layerData : await loadLayer(settings.region, settings.layer);
+  if (!sameLayer || !els.svgHost.firstChild) {
+    const svgRes = await fetch(layerData.svgUrl);
+    if (!svgRes.ok) throw new Error(`Could not load ${layerData.svgUrl}`);
+    els.svgHost.innerHTML = await svgRes.text();
+  }
+
+  const onlyIds = settings.onlyMistakes
+    ? mistakeIds(storedMistakes(settings.region, settings.layer))
+    : undefined;
+  quiz = createQuiz(layerData, {
+    mode: settings.mode,
+    order: settings.order,
+    onlyIds,
+    avoidFirstId: sameLayer ? session.lastId : undefined,
+  });
+  session = { ...settings, layerData, lastId: null };
+
+  const region = regions.find((r) => r.id === settings.region);
+  const layerName = region.layers.find((l) => l.id === settings.layer).name;
+  const parts = [region.name, layerName, settings.mode === MODES.HINT ? 'Hint' : 'Recall'];
+  if (settings.onlyMistakes) parts.push('Mistakes');
+  els.quizTitle.textContent = parts.join(' · ');
+  els.answerButton.hidden = settings.mode === MODES.HINT;
+
+  showScreen(els.quizScreen);
+  renderItem({ animate: false });
+  els.answerInput.focus();
 }
 
 function activeElement() {
@@ -112,6 +214,10 @@ function renderItem({ animate = true } = {}) {
   setFeedback('');
   renderHint();
   positionOverlay(animate);
+  // Recall mode must not say the name: that is the answer.
+  announce(quiz.mode === MODES.HINT
+    ? `Highlighted: ${quiz.current().name}. Type the name.`
+    : 'Next structure highlighted. Type its name.');
 }
 
 function renderHint() {
@@ -159,9 +265,19 @@ function setFeedback(text, kind = '') {
   els.feedback.textContent = text;
 }
 
+/** Saves the result of the item that was just finished. */
+function recordResult() {
+  const { id, correct } = quiz.lastResult();
+  const counts = storedMistakes(session.region, session.layer);
+  saveMistakes(session.region, session.layer, updateMistakes(counts, id, correct, {
+    resetOnCorrect: session.onlyMistakes,
+  }));
+  session.lastId = id;
+}
+
 function goNext() {
-  quiz.next();
-  renderItem();
+  if (quiz.next()) renderItem();
+  else showSummary();
 }
 
 // Hint mode: every typed character goes straight to the quiz logic.
@@ -175,7 +291,10 @@ els.answerInput.addEventListener('beforeinput', (e) => {
   }
   els.answerInput.value = quiz.hint().done;
   renderHint();
-  if (quiz.isAnswered()) nextTimer = setTimeout(goNext, NEXT_DELAY_MS);
+  if (quiz.isAnswered()) {
+    recordResult();
+    nextTimer = setTimeout(goNext, NEXT_DELAY_MS);
+  }
 });
 
 // Recall mode: Enter checks the answer; after a wrong answer, Enter moves on.
@@ -188,6 +307,7 @@ els.answerForm.addEventListener('submit', (e) => {
     return;
   }
   const { correct, expected } = quiz.submit(els.answerInput.value);
+  recordResult();
   if (correct) {
     setFeedback('Correct', 'ok');
     nextTimer = setTimeout(goNext, NEXT_DELAY_MS);
@@ -201,7 +321,50 @@ els.answerForm.addEventListener('submit', (e) => {
   }
 });
 
-els.backButton.addEventListener('click', stopQuiz);
+// ---------- Summary screen ----------
+
+function showSummary() {
+  const { total, correctFirstTry, mistakes } = quiz.summary();
+  quiz = null;
+  els.summaryScore.textContent = `${correctFirstTry} of ${total} correct on the first try.`;
+  els.summaryMistakes.replaceChildren(...mistakes.map((item) => {
+    const li = document.createElement('li');
+    const latin = Object.assign(document.createElement('span'), {
+      className: 'latin', textContent: item.latin,
+    });
+    li.append(`${item.name} `, latin);
+    return li;
+  }));
+  els.summaryMistakes.hidden = mistakes.length === 0;
+  els.summaryNone.hidden = mistakes.length > 0;
+  els.repeatButton.disabled = mistakeIds(storedMistakes(session.region, session.layer)).length === 0;
+
+  showScreen(els.summaryScreen);
+  els.summaryTitle.focus();
+  announce(`Session finished. ${els.summaryScore.textContent}`);
+}
+
+function restart(onlyMistakes) {
+  startSession({ ...session, onlyMistakes }).catch((err) => {
+    showMenu();
+    els.startError.textContent = err.message;
+    els.startError.hidden = false;
+  });
+}
+
+els.againButton.addEventListener('click', () => restart(session.onlyMistakes));
+els.repeatButton.addEventListener('click', () => restart(true));
+els.menuButton.addEventListener('click', showMenu);
+els.backButton.addEventListener('click', showMenu);
+
+// Esc returns to the settings menu from the quiz or the summary.
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && els.startScreen.hidden) {
+    e.preventDefault();
+    showMenu();
+  }
+});
+
 window.addEventListener('resize', () => quiz && positionOverlay(false));
 
 // ---------- Boot ----------

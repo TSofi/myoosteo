@@ -12,7 +12,8 @@
   </header>
 
   <main>
-    <section id="start-screen" class="screen">
+    <section id="start-screen" class="screen" aria-labelledby="settings-title">
+      <h2 id="settings-title" class="screen-title">Settings</h2>
       <form id="start-form" class="start-form">
         <fieldset>
           <legend>Region</legend>
@@ -38,19 +39,47 @@
           </div>
         </fieldset>
 
+        <fieldset>
+          <legend>Order</legend>
+          <div class="options">
+            <label class="option">
+              <input type="radio" name="order" value="neighbours" checked />
+              <span>Neighbours<small>Move to the next structure next to it</small></span>
+            </label>
+            <label class="option">
+              <input type="radio" name="order" value="random" />
+              <span>Random<small>Shuffled every session</small></span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Structures</legend>
+          <div class="options">
+            <label class="option">
+              <input type="radio" name="set" value="all" checked />
+              <span>All<small>Every structure in this layer</small></span>
+            </label>
+            <label class="option">
+              <input type="radio" name="set" value="mistakes" id="set-mistakes" />
+              <span>Repeat my mistakes<small id="mistakes-count">No mistakes saved yet</small></span>
+            </label>
+          </div>
+        </fieldset>
+
         <button type="submit" class="primary">Start</button>
-        <p id="start-error" class="error" hidden></p>
+        <p id="start-error" class="error" role="alert" hidden></p>
       </form>
     </section>
 
-    <section id="quiz-screen" class="screen" hidden>
+    <section id="quiz-screen" class="screen" aria-labelledby="quiz-title" hidden>
       <div class="quiz-bar">
-        <button type="button" id="back-button" class="link">← Back</button>
-        <span id="quiz-title"></span>
+        <button type="button" id="back-button" class="link" aria-keyshortcuts="Escape" title="Back to settings (Esc)">← Menu</button>
+        <h2 id="quiz-title" class="quiz-title"></h2>
       </div>
 
       <div id="stage" class="stage">
-        <div id="svg-host" class="svg-host"></div>
+        <div id="svg-host" class="svg-host" role="img" aria-label="Anatomical drawing. The structure to name is highlighted."></div>
         <div id="highlight" class="highlight" aria-hidden="true"></div>
       </div>
 
@@ -60,11 +89,26 @@
       </div>
 
       <form id="answer-form" class="answer-form" autocomplete="off">
-        <input id="answer-input" type="text" spellcheck="false" autocapitalize="off" aria-label="Name of the highlighted structure" />
+        <input id="answer-input" type="text" spellcheck="false" autocapitalize="off" aria-label="Name of the highlighted structure" aria-describedby="feedback" />
         <button type="submit" id="answer-button">Check</button>
       </form>
       <p id="feedback" class="feedback" aria-live="polite"></p>
     </section>
+
+    <section id="summary-screen" class="screen" aria-labelledby="summary-title" hidden>
+      <h2 id="summary-title" class="screen-title" tabindex="-1">Session finished</h2>
+      <p id="summary-score" class="summary-score"></p>
+      <h3 class="summary-subtitle">Structures with mistakes</h3>
+      <ul id="summary-mistakes" class="summary-mistakes"></ul>
+      <p id="summary-none" class="summary-none" hidden>None. Every structure was right on the first try.</p>
+      <div class="summary-actions">
+        <button type="button" id="again-button" class="primary">Again</button>
+        <button type="button" id="repeat-button">Repeat mistakes</button>
+        <button type="button" id="menu-button" aria-keyshortcuts="Escape">Menu</button>
+      </div>
+    </section>
+
+    <p id="announcer" class="visually-hidden" role="status" aria-live="polite"></p>
   </main>
 
   <footer class="app-footer">
